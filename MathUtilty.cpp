@@ -1,5 +1,111 @@
 #include "MathUtilty.h"
 
+
+bool IsCollision(const Sphere& s1, const Sphere& s2) {
+	// 2つの弾の中心点間の距離を求める
+	float distance = Length(Subtract(s1.center, s2.center));
+	// 半径の合計よりも短ければ衝突
+	if (distance <= s1.radius + s2.radius) {
+		return true;
+	}
+
+	return false;
+}
+
+bool IsCollision(const Sphere& sphere, const Plane& plane) {
+	float distance = fabs(Dot(plane.normal, sphere.center) - plane.distance);
+	if (distance <= sphere.radius) {
+		return true;
+	}
+
+	return false;
+}
+
+bool IsCollision(const Segment& segment, const Plane& plane) {
+
+	// まず垂直判定を行うために、法線と線の内積を求める
+	float dot = Dot(plane.normal, segment.diff);
+
+	// 垂直=平行であるので、衝突しているはずがない
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	// tを求める
+	float t = (plane.distance - Dot(segment.origin, plane.normal)) / dot;
+
+	// tの値と線の種類によって衝突しているかを判断する
+	if (t <= 1.0f && t >= 0.0f) {
+		return true;
+	}
+	return false;
+}
+
+bool IsCollision(const Triangle& triangle, const Segment& segment) {
+	Vector3 v1 = Subtract(triangle.vertices[1], triangle.vertices[0]);
+	Vector3 v2 = Subtract(triangle.vertices[2], triangle.vertices[1]);
+	Vector3 cross = Cross(v1, v2);
+	Vector3 normal = Normalize(cross);
+
+	// 法線と線の内積を求める
+	float dot = Dot(normal, segment.diff);
+
+	// 垂直=平行であるので、衝突しているはずがない
+	if (dot == 0.0f) {
+		return false;
+	}
+	float d = Dot(triangle.vertices[0], normal);
+	float t = (d - Dot(segment.origin, normal) / dot);
+
+	// tの値と線の種類によって衝突しているかを判断する
+	if (t <= 1.0f && t >= 0.0f) {
+		Vector3 p = {
+		    segment.origin.x + t * segment.diff.x, segment.origin.y + t * segment.diff.y,
+		    segment.origin.z + t * segment.diff.z};
+		Vector3 v01 = Subtract(triangle.vertices[0], triangle.vertices[1]);
+		Vector3 v12 = Subtract(triangle.vertices[1], triangle.vertices[2]);
+		Vector3 v20 = Subtract(triangle.vertices[2], triangle.vertices[0]);
+		Vector3 v0p = Subtract(triangle.vertices[0], p);
+		Vector3 v1p = Subtract(triangle.vertices[1], p);
+		Vector3 v2p = Subtract(triangle.vertices[2], p);
+		// 各辺を結んだベクトルと、頂点と衝突点pを結んだベクトルのクロス積を取る
+		Vector3 cross01 = Cross(v01, v0p);
+		Vector3 cross12 = Cross(v12, v1p);
+		Vector3 cross20 = Cross(v20, v2p);
+		// すべての小三角形のクロス積と法線が同じ方向を向いていたら衝突
+		if (Dot(cross01, normal) >= 0.0f && Dot(cross12, normal) >= 0.0f &&
+		    Dot(cross20, normal) >= 0.0f) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool IsCollision(const AABB& aabb1, const AABB& aabb2) {
+	if ((aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) &&
+	    (aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) &&
+	    (aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z)) {
+		return true;
+	}
+	return false;
+}
+
+bool IsCollision(const AABB& aabb, const Sphere& sphere) {
+	// 最近接点を求める
+	Vector3 clossestPoint{
+	    std::clamp(sphere.center.x, aabb.min.x, aabb.max.x),
+	    std::clamp(sphere.center.y, aabb.min.y, aabb.max.y),
+	    std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)};
+	// 最近接点と球の中心との距離を求める
+	float distance = Length(Subtract(clossestPoint, sphere.center));
+
+	// 距離が半径よりも小さければ衝突
+	if (distance <= sphere.radius) {
+		return true;
+	}
+	return false;
+}
+
 // 加算
 Vector3 Add(const Vector3& v1, const Vector3& v2) {
 	Vector3 result;
@@ -317,6 +423,25 @@ Matrix4x4 MakeScaleMatrix(const Vector3& scale) {
 
 	return result;
 }
+// 3.座標変換
+Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix) {
+	Vector3 result;
+	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] +
+	           1.0f * matrix.m[3][0];
+	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] +
+	           1.0f * matrix.m[3][1];
+	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] +
+	           1.0f * matrix.m[3][2];
+	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] +
+	          1.0f * matrix.m[3][3];
+
+	assert(w != 0.0f);
+	result.x /= w;
+	result.y /= w;
+	result.z /= w;
+
+	return result;
+}
 
 // 回転(rotate)
 
@@ -515,6 +640,289 @@ Matrix4x4 MakeViewportMatrix(
 	result.m[3][3] = 1;
 
 	return result;
+}
+
+// クロス積
+Vector3 Cross(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	result = {v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x};
+	return result;
+}
+
+void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label) {
+	Novice::ScreenPrintf(x, y, "%.02f", vector.x);
+	Novice::ScreenPrintf(x + kColumnWidth, y, "%.02f", vector.y);
+	Novice::ScreenPrintf(x + kColumnWidth * 2, y, "%.02f", vector.z);
+	Novice::ScreenPrintf(x + kColumnWidth * 3, y, "%s", label);
+}
+
+// グリッド線
+void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
+	const float kGridHalfWidth = 2.0f;                                      // Gridの半分の幅
+	const uint32_t kSubdivision = 10;                                       // 分割数
+	const float kGridEvery = (kGridHalfWidth * 2.0f) / float(kSubdivision); // 1つ分の長さ
+
+	Vector3 worldVertices[2];
+	Vector3 screenVertices[2];
+	Vector3 ndcVertex;
+
+	// 奥から手前への線を順々に引いていく
+	for (uint32_t xIndex = 0; xIndex <= kSubdivision; ++xIndex) {
+
+		// ワールド座標系上の始点と終点を求める
+		worldVertices[0] = {xIndex * kGridEvery - kGridHalfWidth, 0.0f, kGridHalfWidth};
+		worldVertices[1] = {xIndex * kGridEvery - kGridHalfWidth, 0.0f, -kGridHalfWidth};
+
+		// スクリーン座標系まで変換をかける
+		for (uint32_t i = 0; i < 2; ++i) {
+			ndcVertex = Transform(worldVertices[i], viewProjectionMatrix);
+			screenVertices[i] = Transform(ndcVertex, viewportMatrix);
+		}
+
+		// 表示
+		if (xIndex * kGridEvery - kGridHalfWidth == 0.0f) {
+			Novice::DrawLine(
+			    int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x),
+			    int(screenVertices[1].y), 0x000000FF);
+		} else {
+			Novice::DrawLine(
+			    int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x),
+			    int(screenVertices[1].y), 0xAAAAAAFF);
+		}
+	}
+
+	// 左から右も同じように順々に引いていく
+	for (uint32_t zIndex = 0; zIndex <= kSubdivision; ++zIndex) {
+		// ワールド座標系上の始点と終点を求める
+		worldVertices[0] = {kGridHalfWidth, 0.0f, zIndex * kGridEvery - kGridHalfWidth};
+		worldVertices[1] = {-kGridHalfWidth, 0.0f, zIndex * kGridEvery - kGridHalfWidth};
+
+		// スクリーン座標系まで変換をかける
+		for (uint32_t i = 0; i < 2; ++i) {
+			ndcVertex = Transform(worldVertices[i], viewProjectionMatrix);
+			screenVertices[i] = Transform(ndcVertex, viewportMatrix);
+		}
+
+		// 表示
+		if (zIndex * kGridEvery - kGridHalfWidth == 0.0f) {
+			Novice::DrawLine(
+			    int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x),
+			    int(screenVertices[1].y), 0x000000FF);
+		} else {
+			Novice::DrawLine(
+			    int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x),
+			    int(screenVertices[1].y), 0xAAAAAAFF);
+		}
+	}
+}
+
+// 球
+void DrawSphere(
+    const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix,
+    uint32_t color) {
+	const uint32_t kSubdivision = 16; // 分割数
+	const float kLonEvery =
+	    (2.0f * static_cast<float>(std::numbers::pi)) / kSubdivision; // 経度分割1つ分の角度
+	const float kLatEvery =
+	    static_cast<float>(std::numbers::pi) / kSubdivision; // 緯度分割1つ分の角度
+
+	// 緯度の方向に分割
+	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+		float lat =
+		    static_cast<float>(-std::numbers::pi) / 2.0f + kLatEvery * latIndex; // 現在の緯度
+		// 経度の方向に分割
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+			float lon = lonIndex * kLonEvery; // 現在の経度
+			// world座標系でのa,b,cを求める
+			Vector3 a, b, c;
+
+			a = {
+			    sphere.radius * std::cosf(lat) * std::cosf(lon), sphere.radius * std::sinf(lat),
+			    sphere.radius * std::cosf(lat) * std::sinf(lon)};
+			a = Add(a, sphere.center);
+			b = {
+			    sphere.radius * std::cosf(lat + kLatEvery) * std::cosf(lon),
+			    sphere.radius * std::sinf(lat + kLatEvery),
+			    sphere.radius * std::cosf(lat + kLatEvery) * std::sinf(lon)};
+			b = Add(b, sphere.center);
+			c = {
+			    sphere.radius * std::cosf(lat) * std::cosf(lon + kLonEvery),
+			    sphere.radius * std::sinf(lat),
+			    sphere.radius * std::cosf(lat) * std::sinf(lon + kLonEvery)};
+			c = Add(c, sphere.center);
+
+			// a,b,cをScreen座標系まで変換
+			Vector3 ndcA = Transform(a, viewProjectionMatrix);
+			Vector3 ndcB = Transform(b, viewProjectionMatrix);
+			Vector3 ndcC = Transform(c, viewProjectionMatrix);
+
+			Vector3 screenA = Transform(ndcA, viewportMatrix);
+			Vector3 screenB = Transform(ndcB, viewportMatrix);
+			Vector3 screenC = Transform(ndcC, viewportMatrix);
+
+			// ab,bcで線を引く
+			Novice::DrawLine(
+			    static_cast<int>(screenA.x), static_cast<int>(screenA.y),
+			    static_cast<int>(screenB.x), static_cast<int>(screenB.y), color);
+
+			Novice::DrawLine(
+			    static_cast<int>(screenA.x), static_cast<int>(screenA.y),
+			    static_cast<int>(screenC.x), static_cast<int>(screenC.y), color);
+		}
+	}
+}
+
+Vector3 Project(const Vector3& v1, const Vector3& v2) { return Vector3(); }
+
+// 正射影ベクトル
+Vector3 Project(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+
+	Vector3 nor = Normalize(v2);
+	float dot = Dot(v1, nor);
+
+	result.x = dot * nor.x;
+	result.y = dot * nor.y;
+	result.z = dot * nor.z;
+
+	return result;
+}
+
+// 最近接点
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	Vector3 result;
+	Vector3 project = Project(Subtract(point, segment.origin), segment.diff);
+
+	result.x = segment.origin.x + project.x;
+	result.y = segment.origin.y + project.y;
+	result.z = segment.origin.z + project.z;
+
+	return result;
+}
+
+Vector3 Perpendicular(const Vector3& vector) {
+	if (vector.x != 0.0f || vector.y != 0.0f) {
+		return {-vector.y, vector.x, 0.0f};
+	}
+
+	return {0.0f, -vector.z, vector.y};
+}
+
+// 平面
+void DrawPlane(
+    const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
+	Vector3 center = Multiply(plane.distance, plane.normal);
+
+	Vector3 perpendiclars[4];
+	perpendiclars[0] = Normalize(Perpendicular(plane.normal));
+	perpendiclars[1] = {-perpendiclars[0].x, -perpendiclars[0].y, -perpendiclars[0].z};
+	perpendiclars[2] = Cross(plane.normal, perpendiclars[0]);
+	perpendiclars[3] = {-perpendiclars[2].x, -perpendiclars[2].y, -perpendiclars[2].z};
+
+	Vector3 points[4];
+	for (int32_t index = 0; index < 4; ++index) {
+		Vector3 extend = Multiply(2.0f, perpendiclars[index]);
+		Vector3 point = Add(center, extend);
+		points[index] = Transform(Transform(point, viewProjectionMatrix), viewportMatrix);
+	}
+
+	Novice::DrawLine(
+	    int(points[0].x), int(points[0].y), int(points[3].x), int(points[3].y), plane.color);
+	Novice::DrawLine(
+	    int(points[1].x), int(points[1].y), int(points[2].x), int(points[2].y), plane.color);
+	Novice::DrawLine(
+	    int(points[2].x), int(points[2].y), int(points[0].x), int(points[0].y), plane.color);
+	Novice::DrawLine(
+	    int(points[3].x), int(points[3].y), int(points[1].x), int(points[1].y), plane.color);
+}
+
+void DrawTriangle(
+    const Triangle& triangle, const Matrix4x4& viewProjectionMatrix,
+    const Matrix4x4& viewportMatrix, uint32_t color) {
+	// 頂点座標
+	Vector3 scVertices[3];
+	for (int i = 0; i < 3; ++i) {
+		Vector3 ndcVertex = Transform(triangle.vertices[i], viewProjectionMatrix);
+		scVertices[i] = Transform(ndcVertex, viewportMatrix);
+	}
+
+	// 描画
+	Novice::DrawTriangle(
+	    int(scVertices[0].x), int(scVertices[0].y), int(scVertices[1].x), int(scVertices[1].y),
+	    int(scVertices[2].x), int(scVertices[2].y), color, kFillModeWireFrame);
+}
+
+// AABB
+void DrawAABB(
+    const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix,
+    uint32_t color) {
+	Vector3 vertex[8]{};
+	vertex[0] = {aabb.min.x, aabb.min.y, aabb.min.z};
+	vertex[1] = {aabb.min.x, aabb.min.y, aabb.max.z};
+	vertex[2] = {aabb.min.x, aabb.max.y, aabb.min.z};
+	vertex[3] = {aabb.max.x, aabb.min.y, aabb.min.z};
+	vertex[4] = {aabb.max.x, aabb.max.y, aabb.min.z};
+	vertex[5] = {aabb.min.x, aabb.max.y, aabb.max.z};
+	vertex[6] = {aabb.max.x, aabb.min.y, aabb.max.z};
+	vertex[7] = {aabb.max.x, aabb.max.y, aabb.max.z};
+
+	Vector3 screenVertex[8]{};
+	for (int i = 0; i < 8; i++) {
+		vertex[i] = Transform(vertex[i], viewProjectionMatrix);
+		screenVertex[i] = Transform(vertex[i], viewportMatrix);
+	}
+
+	Novice::DrawLine(
+	    int(screenVertex[0].x), int(screenVertex[0].y), int(screenVertex[1].x),
+	    int(screenVertex[1].y), color);
+	Novice::DrawLine(
+	    int(screenVertex[0].x), int(screenVertex[0].y), int(screenVertex[2].x),
+	    int(screenVertex[2].y), color);
+	Novice::DrawLine(
+	    int(screenVertex[0].x), int(screenVertex[0].y), int(screenVertex[3].x),
+	    int(screenVertex[3].y), color);
+
+	Novice::DrawLine(
+	    int(screenVertex[1].x), int(screenVertex[1].y), int(screenVertex[5].x),
+	    int(screenVertex[5].y), color);
+	Novice::DrawLine(
+	    int(screenVertex[1].x), int(screenVertex[1].y), int(screenVertex[6].x),
+	    int(screenVertex[6].y), color);
+
+	Novice::DrawLine(
+	    int(screenVertex[2].x), int(screenVertex[2].y), int(screenVertex[4].x),
+	    int(screenVertex[4].y), color);
+	Novice::DrawLine(
+	    int(screenVertex[2].x), int(screenVertex[2].y), int(screenVertex[5].x),
+	    int(screenVertex[5].y), color);
+
+	Novice::DrawLine(
+	    int(screenVertex[3].x), int(screenVertex[3].y), int(screenVertex[4].x),
+	    int(screenVertex[4].y), color);
+	Novice::DrawLine(
+	    int(screenVertex[3].x), int(screenVertex[3].y), int(screenVertex[6].x),
+	    int(screenVertex[6].y), color);
+
+	Novice::DrawLine(
+	    int(screenVertex[4].x), int(screenVertex[4].y), int(screenVertex[7].x),
+	    int(screenVertex[7].y), color);
+	Novice::DrawLine(
+	    int(screenVertex[5].x), int(screenVertex[5].y), int(screenVertex[7].x),
+	    int(screenVertex[7].y), color);
+	Novice::DrawLine(
+	    int(screenVertex[6].x), int(screenVertex[6].y), int(screenVertex[7].x),
+	    int(screenVertex[7].y), color);
+}
+
+bool IsCollision(const Sphere& s1, const Sphere& s2) {
+	// 2つの弾の中心点間の距離を求める
+	float distance = Length(Subtract(s1.center, s2.center));
+	// 半径の合計よりも短ければ衝突
+	if (distance <= s1.radius + s2.radius) {
+		return true;
+	}
+
+	return false;
 }
 
 // 線形補間
