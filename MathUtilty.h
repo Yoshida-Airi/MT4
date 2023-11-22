@@ -120,6 +120,10 @@ static const int kRowHeight = 20;
 static const int kColumnWidth = 60;
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
 
+//4次元ベクトルの数値表示
+void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label);
+
+
 // グリッド線
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
@@ -150,3 +154,6 @@ void DrawTriangle(
 void DrawAABB(
     const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix,
     uint32_t color);
+
+// 任意軸回転行列
+Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle);

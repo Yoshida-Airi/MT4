@@ -1,6 +1,9 @@
 #include <Novice.h>
+#include"Vector3.h"
+#include"Matrix4x4.h"
+#include"MathUtilty.h"
 
-const char kWindowTitle[] = "学籍番号";
+const char kWindowTitle[] = "LE2B_22_ヨシダアイリ_任意軸回転行列";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -11,6 +14,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
 	char preKeys[256] = {0};
+
+	Vector3 axis = Normalize({1.0f, 1.0f, 1.0f});
+	float angle = 0.44f;
+
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -25,6 +32,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		Matrix4x4 rotateMatrix = MakeRotateAxisAngle(axis, angle);
+
+
 		///
 		/// ↑更新処理ここまで
 		///
@@ -32,6 +42,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓描画処理ここから
 		///
+
+		MatrixScreenPrintf(0, 0, rotateMatrix, "rotateMatrix");
 
 		///
 		/// ↑描画処理ここまで

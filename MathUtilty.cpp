@@ -656,6 +656,17 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label) 
 	Novice::ScreenPrintf(x + kColumnWidth * 3, y, "%s", label);
 }
 
+void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label) {
+	Novice::ScreenPrintf(x, y, label);
+	for (int row = 0; row < 4; ++row) {
+		for (int column = 0; column < 4; ++column) {
+			Novice::ScreenPrintf(
+			    x + column * kColumnWidth, y + 20 + row * kRowHeight, "%6.03f",
+			    matrix.m[row][column]);
+		}
+	}
+}
+
 // グリッド線
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
 	const float kGridHalfWidth = 2.0f;                                      // Gridの半分の幅
@@ -772,7 +783,6 @@ void DrawSphere(
 	}
 }
 
-Vector3 Project(const Vector3& v1, const Vector3& v2) { return Vector3(); }
 
 // 正射影ベクトル
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
@@ -914,16 +924,45 @@ void DrawAABB(
 	    int(screenVertex[7].y), color);
 }
 
-bool IsCollision(const Sphere& s1, const Sphere& s2) {
-	// 2つの弾の中心点間の距離を求める
-	float distance = Length(Subtract(s1.center, s2.center));
-	// 半径の合計よりも短ければ衝突
-	if (distance <= s1.radius + s2.radius) {
-		return true;
-	}
+Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
+{
 
-	return false;
+	Matrix4x4 result;
+
+	double radian = angle/* * (static_cast<float>(std::numbers::pi) / 180.0f)*/;
+
+	
+
+	float sinTheta = static_cast<float>(std::sin(radian));
+	float cosTheta = static_cast<float>(std::cos(radian));
+
+	Vector3 nAxsis = axis;
+
+
+	result.m[0][0] = nAxsis.x * nAxsis.x * (1 - cosTheta) + cosTheta;
+	result.m[0][1] = nAxsis.x * nAxsis.y * (1 - cosTheta) + nAxsis.z * sinTheta;
+	result.m[0][2] = nAxsis.x * nAxsis.z * (1 - cosTheta) - nAxsis.y * sinTheta;
+	result.m[0][3] = 0.0f;
+
+	result.m[1][0] = nAxsis.x * nAxsis.y * (1 - cosTheta) - nAxsis.z * sinTheta;
+	result.m[1][1] = nAxsis.y * nAxsis.y * (1 - cosTheta) + cosTheta;
+	result.m[1][2] = nAxsis.y * nAxsis.z * (1 - cosTheta) + nAxsis.x * sinTheta;
+	result.m[1][3] = 0.0f;
+
+	result.m[2][0] = nAxsis.x * nAxsis.z * (1 - cosTheta) + nAxsis.y * sinTheta;
+	result.m[2][1] = nAxsis.y * nAxsis.z * (1 - cosTheta) - nAxsis.x * sinTheta;
+	result.m[2][2] = nAxsis.z * nAxsis.z * (1 - cosTheta) + cosTheta;
+	result.m[2][3] = 0.0f;
+
+	result.m[3][0] = 0.0f;
+	result.m[3][1] = 0.0f;
+	result.m[3][2] = 0.0f;
+	result.m[3][3] = 1.0f;
+
+	return result;
+
 }
+
 
 // 線形補間
 Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
