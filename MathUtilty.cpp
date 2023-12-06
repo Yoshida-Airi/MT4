@@ -926,12 +926,9 @@ void DrawAABB(
 
 Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 {
-
 	Matrix4x4 result;
 
-	double radian = angle/* * (static_cast<float>(std::numbers::pi) / 180.0f)*/;
-
-	
+	double radian = angle;
 
 	float sinTheta = static_cast<float>(std::sin(radian));
 	float cosTheta = static_cast<float>(std::cos(radian));
@@ -963,6 +960,60 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 
 }
 
+Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float sinTheta,float cosTheta) {
+	Matrix4x4 result;
+
+	Vector3 nAxsis = axis;
+
+	result.m[0][0] = nAxsis.x * nAxsis.x * (1 - cosTheta) + cosTheta;
+	result.m[0][1] = nAxsis.x * nAxsis.y * (1 - cosTheta) + nAxsis.z * sinTheta;
+	result.m[0][2] = nAxsis.x * nAxsis.z * (1 - cosTheta) - nAxsis.y * sinTheta;
+	result.m[0][3] = 0.0f;
+
+	result.m[1][0] = nAxsis.x * nAxsis.y * (1 - cosTheta) - nAxsis.z * sinTheta;
+	result.m[1][1] = nAxsis.y * nAxsis.y * (1 - cosTheta) + cosTheta;
+	result.m[1][2] = nAxsis.y * nAxsis.z * (1 - cosTheta) + nAxsis.x * sinTheta;
+	result.m[1][3] = 0.0f;
+
+	result.m[2][0] = nAxsis.x * nAxsis.z * (1 - cosTheta) + nAxsis.y * sinTheta;
+	result.m[2][1] = nAxsis.y * nAxsis.z * (1 - cosTheta) - nAxsis.x * sinTheta;
+	result.m[2][2] = nAxsis.z * nAxsis.z * (1 - cosTheta) + cosTheta;
+	result.m[2][3] = 0.0f;
+
+	result.m[3][0] = 0.0f;
+	result.m[3][1] = 0.0f;
+	result.m[3][2] = 0.0f;
+	result.m[3][3] = 1.0f;
+
+	return result;
+}
+
+Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to) {
+	Matrix4x4 result{};
+	Vector3 Axis{};
+
+	//値が真逆かどうか
+	if (from.x == -to.x && from.y == -to.y && from.z == -to.z) {
+
+		if (from.x != 0.0f || from.y != 0.0f) {
+			Axis = Normalize({from.y, -from.x, 0.0f});
+		}
+
+		else if (from.x != 0.0f || from.z != 0.0f) {
+			Axis = Normalize({from.z, 0.0f, -from.x});
+		}
+	} else {
+
+		Axis = Normalize(Cross(from, to));
+	}
+	
+
+
+	float cosTheta = Dot(from, to);
+	float sinTheta = Length(Cross(from, to));
+
+	return MakeRotateAxisAngle(Axis, sinTheta, cosTheta);
+}
 
 // 線形補間
 Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
