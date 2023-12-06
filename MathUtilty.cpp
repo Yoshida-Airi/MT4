@@ -667,6 +667,15 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 	}
 }
 
+void QuaternionScreenPrintf(int x, int y, const Quaternion& quaternion, const char* label)
+{
+	Novice::ScreenPrintf(x, y, "%.02f", quaternion.x);
+	Novice::ScreenPrintf(x + kColumnWidth, y, "%.02f", quaternion.y);
+	Novice::ScreenPrintf(x + kColumnWidth * 2, y, "%.02f", quaternion.z);
+	Novice::ScreenPrintf(x + kColumnWidth * 3, y, "%.02f", quaternion.w);
+	Novice::ScreenPrintf(x + kColumnWidth * 5, y, ":%s", label);
+}
+
 // グリッド線
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
 	const float kGridHalfWidth = 2.0f;                                      // Gridの半分の幅
@@ -988,32 +997,76 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float sinTheta,float cosTheta
 	return result;
 }
 
-Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to) {
-	Matrix4x4 result{};
-	Vector3 Axis{};
 
-	//値が真逆かどうか
-	if (from.x == -to.x && from.y == -to.y && from.z == -to.z) {
+Quaternion Multiply(const Quaternion& lhs, const Quaternion& rhs)
+{
+	Quaternion result;
 
-		if (from.x != 0.0f || from.y != 0.0f) {
-			Axis = Normalize({from.y, -from.x, 0.0f});
-		}
+	result.w = lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z;
+	result.x = lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y;
+	result.y = lhs.w * rhs.y - lhs.x * rhs.z + lhs.y * rhs.w + lhs.z * rhs.x;
+	result.z = lhs.w * rhs.z + lhs.x * rhs.y - lhs.y * rhs.x + lhs.z * rhs.w;
 
-		else if (from.x != 0.0f || from.z != 0.0f) {
-			Axis = Normalize({from.z, 0.0f, -from.x});
-		}
-	} else {
-
-		Axis = Normalize(Cross(from, to));
-	}
-	
-
-
-	float cosTheta = Dot(from, to);
-	float sinTheta = Length(Cross(from, to));
-
-	return MakeRotateAxisAngle(Axis, sinTheta, cosTheta);
+	return result;
 }
+
+Quaternion IdentityQuaternion()
+{
+	Quaternion result;
+	result.x = 0.0f;
+	result.y = 0.0f;
+	result.z = 0.0f;
+	result.w = 1.0f;
+	return result;
+}
+
+Quaternion Conjugate(const Quaternion& quaternion) 
+{ 
+	Quaternion result;
+	result.x = -quaternion.x;
+	result.y = -quaternion.y;
+	result.z = -quaternion.z;
+	result.w = quaternion.w;
+	return result;
+}
+
+float Norm(const Quaternion& quaternion)
+{ 
+	float result;
+	result = sqrtf(
+	    (quaternion.w * quaternion.w) + (quaternion.x * quaternion.x) +
+	    (quaternion.y * quaternion.y) + (quaternion.z * quaternion.z));
+
+	return result;
+}
+
+Quaternion Normalize(const Quaternion& quaternion) {
+	Quaternion result;
+	float norm = Norm(quaternion);
+	float invNorm = 1.0f / norm;
+
+	result.x = quaternion.x * invNorm;
+	result.y = quaternion.y * invNorm;
+	result.z = quaternion.z * invNorm;
+	result.w = quaternion.w * invNorm;
+
+	return result;
+}
+
+Quaternion Inverse(const Quaternion& quaternion) {
+	
+	Quaternion result;
+
+	Quaternion result2 = Conjugate(quaternion);
+
+	result.x = result2.x / (Norm(quaternion) * Norm(quaternion));
+	result.y = result2.y / (Norm(quaternion) * Norm(quaternion));
+	result.z = result2.z / (Norm(quaternion) * Norm(quaternion));
+	result.w = result2.w / (Norm(quaternion) * Norm(quaternion));
+
+	return result;
+}
+
 
 // 線形補間
 Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {

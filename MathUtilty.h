@@ -37,6 +37,13 @@ struct AABB {
 	uint32_t color;
 };
 
+struct Quaternion {
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
 // 当たり判定
 bool IsCollision(const Sphere& s1, const Sphere& s2);
 bool IsCollision(const Sphere& sphere, const Plane& plane);
@@ -123,6 +130,9 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
 //4次元ベクトルの数値表示
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label);
 
+// 4次元ベクトルの数値表示
+void QuaternionScreenPrintf(int x, int y, const Quaternion& matrix, const char* label);
+
 
 // グリッド線
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
@@ -160,3 +170,16 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle);
 Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float sinTheta, float cosTheta);
 	//ある方向からある方向への回転
 Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to);
+
+//Quaternionの積
+Quaternion Multiply(const Quaternion& lhs, const Quaternion& rhs);
+//単位Quaternionを返す
+Quaternion IdentityQuaternion();
+//共役Quaternionを返す
+Quaternion Conjugate(const Quaternion& quaternion);
+//Quaternionのnormを返す
+float Norm(const Quaternion& quaternion);
+//正規化したQuaternionを返す
+Quaternion Normalize(const Quaternion& quaternion);
+//逆Quaternionを返す
+Quaternion Inverse(const Quaternion& quaternion);
