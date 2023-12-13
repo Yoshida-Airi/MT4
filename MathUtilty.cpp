@@ -1,6 +1,5 @@
 #include "MathUtilty.h"
 
-
 bool IsCollision(const Sphere& s1, const Sphere& s2) {
 	// 2つの弾の中心点間の距離を求める
 	float distance = Length(Subtract(s1.center, s2.center));
@@ -667,8 +666,7 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 	}
 }
 
-void QuaternionScreenPrintf(int x, int y, const Quaternion& quaternion, const char* label)
-{
+void QuaternionScreenPrintf(int x, int y, const Quaternion& quaternion, const char* label) {
 	Novice::ScreenPrintf(x, y, "%.02f", quaternion.x);
 	Novice::ScreenPrintf(x + kColumnWidth, y, "%.02f", quaternion.y);
 	Novice::ScreenPrintf(x + kColumnWidth * 2, y, "%.02f", quaternion.z);
@@ -791,7 +789,6 @@ void DrawSphere(
 		}
 	}
 }
-
 
 // 正射影ベクトル
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
@@ -933,8 +930,7 @@ void DrawAABB(
 	    int(screenVertex[7].y), color);
 }
 
-Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
-{
+Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle) {
 	Matrix4x4 result;
 
 	double radian = angle;
@@ -944,7 +940,6 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 
 	Vector3 nAxsis = axis;
 
-
 	result.m[0][0] = nAxsis.x * nAxsis.x * (1 - cosTheta) + cosTheta;
 	result.m[0][1] = nAxsis.x * nAxsis.y * (1 - cosTheta) + nAxsis.z * sinTheta;
 	result.m[0][2] = nAxsis.x * nAxsis.z * (1 - cosTheta) - nAxsis.y * sinTheta;
@@ -966,10 +961,9 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 	result.m[3][3] = 1.0f;
 
 	return result;
-
 }
 
-Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float sinTheta,float cosTheta) {
+Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float sinTheta, float cosTheta) {
 	Matrix4x4 result;
 
 	Vector3 nAxsis = axis;
@@ -997,9 +991,7 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float sinTheta,float cosTheta
 	return result;
 }
 
-
-Quaternion Multiply(const Quaternion& lhs, const Quaternion& rhs)
-{
+Quaternion Multiply(const Quaternion& lhs, const Quaternion& rhs) {
 	Quaternion result;
 
 	result.w = lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z;
@@ -1010,8 +1002,7 @@ Quaternion Multiply(const Quaternion& lhs, const Quaternion& rhs)
 	return result;
 }
 
-Quaternion IdentityQuaternion()
-{
+Quaternion IdentityQuaternion() {
 	Quaternion result;
 	result.x = 0.0f;
 	result.y = 0.0f;
@@ -1020,8 +1011,7 @@ Quaternion IdentityQuaternion()
 	return result;
 }
 
-Quaternion Conjugate(const Quaternion& quaternion) 
-{ 
+Quaternion Conjugate(const Quaternion& quaternion) {
 	Quaternion result;
 	result.x = -quaternion.x;
 	result.y = -quaternion.y;
@@ -1030,8 +1020,7 @@ Quaternion Conjugate(const Quaternion& quaternion)
 	return result;
 }
 
-float Norm(const Quaternion& quaternion)
-{ 
+float Norm(const Quaternion& quaternion) {
 	float result;
 	result = sqrtf(
 	    (quaternion.w * quaternion.w) + (quaternion.x * quaternion.x) +
@@ -1054,19 +1043,73 @@ Quaternion Normalize(const Quaternion& quaternion) {
 }
 
 Quaternion Inverse(const Quaternion& quaternion) {
-	
+
 	Quaternion result;
+	Quaternion conjugate = Conjugate(quaternion);
 
-	Quaternion result2 = Conjugate(quaternion);
-
-	result.x = result2.x / (Norm(quaternion) * Norm(quaternion));
-	result.y = result2.y / (Norm(quaternion) * Norm(quaternion));
-	result.z = result2.z / (Norm(quaternion) * Norm(quaternion));
-	result.w = result2.w / (Norm(quaternion) * Norm(quaternion));
+	result.x = conjugate.x / (Norm(quaternion) * Norm(quaternion));
+	result.y = conjugate.y / (Norm(quaternion) * Norm(quaternion));
+	result.z = conjugate.z / (Norm(quaternion) * Norm(quaternion));
+	result.w = conjugate.w / (Norm(quaternion) * Norm(quaternion));
 
 	return result;
 }
 
+Quaternion MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle) {
+	Quaternion result;
+
+	result.x = axis.x * static_cast<float>(std::sin(angle / 2));
+	result.y = axis.y * static_cast<float>(std::sin(angle / 2));
+	result.z = axis.z * static_cast<float>(std::sin(angle / 2));
+	result.w = static_cast<float>(std::cos(angle / 2));
+
+	return result;
+}
+
+Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion) {
+
+	Vector3 result;
+	
+	Quaternion vectorQuaternion = {vector.x, vector.y, vector.z, 0};
+	Quaternion conjugate = Conjugate(quaternion);
+	Quaternion quaternionResult = Multiply(Multiply(quaternion, vectorQuaternion), conjugate);
+
+	result.x = quaternionResult.x;
+	result.y = quaternionResult.y;
+	result.z = quaternionResult.z;
+
+	return result;
+}
+
+Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion) 
+{
+	Matrix4x4 result;
+
+	result.m[0][0] = (quaternion.w * quaternion.w) + (quaternion.x * quaternion.x) -
+	                 (quaternion.y * quaternion.y) - (quaternion.z * quaternion.z);
+	result.m[0][1] = 2.0f * ((quaternion.x * quaternion.y) + (quaternion.w * quaternion.z));
+	result.m[0][2] = 2.0f * ((quaternion.x * quaternion.z) - (quaternion.w * quaternion.y));
+	result.m[0][3] = 0.0f;
+
+	result.m[1][0] = 2.0f * ((quaternion.x * quaternion.y) - (quaternion.w * quaternion.z));
+	result.m[1][1] = (quaternion.w * quaternion.w) - (quaternion.x * quaternion.x) +
+	                 (quaternion.y * quaternion.y) - (quaternion.z * quaternion.z);
+	result.m[1][2] = 2.0f * ((quaternion.y * quaternion.z) + (quaternion.w * quaternion.x));
+	result.m[1][3] = 0.0f;
+
+	result.m[2][0] = 2.0f * ((quaternion.x * quaternion.z) + (quaternion.w * quaternion.y));
+	result.m[2][1] = 2.0f * ((quaternion.y * quaternion.z) - (quaternion.w * quaternion.x));
+	result.m[2][2] = (quaternion.w * quaternion.w) - (quaternion.x * quaternion.x) -
+	                 (quaternion.y * quaternion.y) + (quaternion.z * quaternion.z);
+	result.m[2][3] = 0.0f;
+
+	result.m[3][0] = 0.0f;
+	result.m[3][1] = 0.0f;
+	result.m[3][2] = 0.0f;
+	result.m[3][3] = 1.0f;
+
+	return result;
+}
 
 // 線形補間
 Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
