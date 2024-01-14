@@ -1137,3 +1137,51 @@ Vector3 Slerp(const Vector3& v1, const Vector3& v2, float t) {
 
 	return result;
 }
+
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t) {
+	Quaternion q0_ = q0;
+	Quaternion q1_ = q1;
+
+	// 内積を計算
+	float dot = q0_.w * q1_.w + q0_.x * q1_.x + q0_.y * q1_.y + q0_.z * q1_.z;
+
+	if (dot < 0) {
+		q0_ = Quaternion(-q0_.x, -q0_.y, -q0_.z, -q0_.w);
+		dot = -dot;
+	}
+
+
+	// なす角を求める
+	float theta_0 = std::acos(dot);
+
+	float theta = theta_0 * t; // 補間する角度
+	float sin_theta = std::sin(theta);
+	float sin_theta_0 = std::sin(theta_0);
+
+	float scale0 = std::cos(theta) - dot * sin_theta / sin_theta_0;
+	float scale1 = sin_theta / sin_theta_0;
+
+	Quaternion result;
+
+	// 内積が1に近い場合、q0とq1はほぼ同じ方向にあり、線形補間で十分
+	if (dot >= 1.0f - FLT_EPSILON) 
+	{
+		result =
+		{
+		    (1.0f - t) * q0_.x + t * q1_.x, (1.0f - t) * q0_.y + t * q1_.y,
+		    (1.0f - t) * q0_.z + t * q1_.z, (1.0f - t) * q0_.w + t * q1_.w
+		};
+
+		return result;
+	}
+
+	result =
+	{
+	    scale0 * q0_.x + scale1 * q1_.x, scale0 * q0_.y + scale1 * q1_.y,
+	    scale0 * q0_.z + scale1 * q1_.z, scale0 * q0_.w + scale1 * q1_.w
+	};
+
+
+
+	return result;
+}
