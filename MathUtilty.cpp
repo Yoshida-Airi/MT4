@@ -1163,7 +1163,7 @@ Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t) {
 
 	Quaternion result;
 
-	// 内積が1に近い場合、q0とq1はほぼ同じ方向にあり、線形補間で十分
+	// 内積が1に近い場合線形補間
 	if (dot >= 1.0f - FLT_EPSILON) 
 	{
 		result =
