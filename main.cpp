@@ -3,7 +3,7 @@
 #include "Vector3.h"
 #include <Novice.h>
 
-const char kWindowTitle[] = "LE2B_22_ヨシダアイリ_0104";
+const char kWindowTitle[] = "LE2B_22_ヨシダアイリ_0105_応用";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
